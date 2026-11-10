@@ -1,0 +1,25 @@
+{
+  "name": "reportgen",
+  "description": "Report Generator CLI plus the skills and workflows that drive it: query and edit audits, hosts, services and vulnerabilities, verify scanner findings, hunt for new ones.",
+  "userConfig": {
+    "url": {
+      "type": "string",
+      "title": "Report Generator URL",
+      "description": "Base URL of your Report Generator instance, no trailing slash.",
+      "default": "https://report.lan"
+    },
+    "api_key": {
+      "type": "string",
+      "title": "API key",
+      "description": "Create one in the web UI under Settings, then paste it here.",
+      "required": true,
+      "sensitive": true
+    },
+    "verify_tls": {
+      "type": "boolean",
+      "title": "Verify TLS certificate",
+      "description": "Turn off only if your instance uses a self-signed certificate. Always off for https://report.lan.",
+      "default": true
+    }
+  }
+}

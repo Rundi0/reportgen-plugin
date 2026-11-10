@@ -1,0 +1,14 @@
+{
+  "name": "reportgen",
+  "description": "Report Generator CLI, skills and workflows for Claude Code.",
+  "owner": {
+    "name": "Report Generator"
+  },
+  "plugins": [
+    {
+      "name": "reportgen",
+      "description": "Report Generator CLI plus the skills and workflows that drive it.",
+      "source": "./"
+    }
+  ]
+}

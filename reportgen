@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Run the CLI via uv. Self-locating, no PYTHONPATH needed, works from any cwd.
+#
+# uv builds and caches a venv next to this script on first run and reuses it.
+# Unless REPORTGEN_ENV_FILE is set, credentials come from the first of:
+#   1. .env next to this script (source checkout)
+#   2. ~/.config/reportgen/.env (written by the Claude Code plugin, or by hand)
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+
+command -v uv >/dev/null || {
+    echo "reportgen: uv is required, see https://docs.astral.sh/uv/" >&2
+    exit 2
+}
+
+if [ -z "${REPORTGEN_ENV_FILE:-}" ]; then
+    for f in "$SCRIPT_DIR/.env" "${XDG_CONFIG_HOME:-$HOME/.config}/reportgen/.env"; do
+        if [ -f "$f" ]; then export REPORTGEN_ENV_FILE="$f"; break; fi
+    done
+fi
+
+exec uv run --project "$SCRIPT_DIR" --quiet reportgen "$@"
