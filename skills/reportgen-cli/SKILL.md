@@ -79,7 +79,8 @@ Run `reportgen <group> --help` for the authoritative arg list. Quick map:
 | `general-recommendations` | `get AUDIT_ID`, `patch AUDIT_ID FILE` (JSON list or `get` output, `-` = stdin), `generate AUDIT_ID`, `reset AUDIT_ID` |
 | `users` | `list` |
 | `merge-rules` | `list`, `create --body '{...}'`, `update`, `delete` |
-| `reports` | `list-templates`, `generate --workspace-id N --template-id N --file-name name.docx`, `check-translations --source ... --workspace-id N`, `upload-scan-data AUDIT_ID FILE` |
+| `reports` | `list-templates`, `upload-scan-data AUDIT_ID FILE`, `check-translations --source ... --workspace-id N`, `generate --workspace-id N --template-id N --file-name NAME` |
+| `report-acts` | `get AUDIT_ID`, `set-notes AUDIT_ID --file notes.md`, `split AUDIT_ID`, `generate AUDIT_ID`, `set-act AUDIT_ID --file act.md` |
 
 ### Severity levels
 
@@ -140,6 +141,55 @@ Set-Cookie: sid_avatar=...; Domain=.example.com   (no HttpOnly, no Secure)
 ```
 
 **`params` — only the fact relevant to *this* (child) vuln.** A bare noun or value, never a sentence or clause with a verb (BAD: `table parameter: SQL injection via unparameterized table name` → GOOD: `table`; BAD: `Session cookie without Secure flag` → GOOD: `missing=Secure`). For split cookie/TLS-style findings, scope `params` to the single attribute this child is about (e.g. child "Not Marked as Secure" → `missing=Secure`, not the full `missing=HttpOnly,Secure`). Never duplicate what other fields already carry — the endpoint lives in `path`, so don't repeat "set via /wp-admin/...". Strip scanner attribution like `(per Acunetix)`; state the fact directly. Leave `params` empty when the vuln name + path already say everything, and always empty on `false_positive` instances.
+
+## Importing scan results
+
+```bash
+reportgen reports upload-scan-data AUDIT_ID scan.json      # Acunetix export (.json)
+reportgen reports upload-scan-data AUDIT_ID scan.nessus    # Nessus (.nessus or .xml)
+```
+
+The file type is taken from the extension; anything else is rejected with HTTP 400. The import adds hosts, services and vulnerabilities (instances arrive as `new`) to the audit and is logged in its history. It is a mutation, so confirm the audit ID with the user first. Large files take a while — pass `--timeout 300` (a global flag, before the group).
+
+## Generating documents
+
+Two different things are called an "act" here, so find out which one the user means:
+
+- a **document from a template** (`.docx` or `.html`) built from the audit's hosts and vulnerabilities — `reports generate`;
+- an **AI-drafted act text** written from the engineer's notes — `report-acts`.
+
+### Document from a template
+
+**Always check translations first.** The document takes each vulnerability's text from its translation template (`vuln-templates`); a vulnerability without one goes into the document untranslated, and generation does not warn about it.
+
+```bash
+reportgen reports check-translations --source internal_db --workspace-id AUDIT_ID
+```
+
+It returns the vulnerabilities that have no template, as `[{name, severity, description, resolution, cve}]`; `[]` means everything is translated. It looks at the same set the document will contain: severity above Info with at least one instance that is not `false_positive` or `fixed`.
+
+If the list is not empty, **do not generate yet**. Tell the user how many vulnerabilities lack a translation and name them, say that they would appear untranslated, and ask whether to add the translations first (`vuln-templates save`, or `vuln-templates translate` for an AI draft) or to generate anyway. Generate only after they answer. If the user already said to generate regardless, still report the list alongside the result.
+
+Then generate:
+
+```bash
+reportgen reports list-templates                      # [{id, name}], e.g. Scan_act.docx, Scan_report.docx
+reportgen reports generate --workspace-id AUDIT_ID --template-id TEMPLATE_ID --file-name act.docx
+```
+
+For the internal DB, `--workspace-id` is the audit ID and `--source` defaults to `internal_db`. The file is saved to `--output`, or to `--file-name` in the current directory, and the command prints `{"saved": ..., "bytes": ...}`. Give the name the template's extension (`.html` for the interactive report). On a large audit both commands can exceed the default 30 s timeout; use `--timeout 300`.
+
+### AI-drafted act text
+
+```bash
+reportgen report-acts set-notes AUDIT_ID --file notes.md   # store the engineer's notes (markdown)
+reportgen report-acts split AUDIT_ID                       # notes -> section outline (sectionsMd), no drafting
+reportgen report-acts generate AUDIT_ID                    # outline -> act text (actMd); --prompt/--prompt-file to steer
+reportgen report-acts get AUDIT_ID                         # {notesMd, sectionsMd, actMd, aiModel, generatedAt, ...}
+reportgen report-acts set-act AUDIT_ID --file act.md       # save an edited act
+```
+
+`split` and `generate` call an LLM on the server, so they are slower than other commands, and they overwrite the stored outline or act — don't re-run `generate` over an act the user has edited without asking.
 
 ## Patterns
 

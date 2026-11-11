@@ -13,6 +13,7 @@ import os
 import sys
 
 import click
+import httpx
 from dotenv import load_dotenv
 
 from .client import ApiError
@@ -158,6 +159,17 @@ def main() -> None:
     except ApiError as exc:
         emit_error(exc.message, status=exc.status, body=exc.body)
         sys.exit(1)
+    except httpx.HTTPStatusError as exc:
+        emit_error(str(exc), status=exc.response.status_code)
+        sys.exit(1)
+    except httpx.HTTPError as exc:
+        # Timeouts, refused connections, TLS failures: no HTTP status to report.
+        emit_error(f"{type(exc).__name__}: {exc}")
+        sys.exit(1)
+    except RuntimeError as exc:
+        # Config.resolve: missing URL or credentials.
+        emit_error(str(exc))
+        sys.exit(2)
     except Exception as exc:
         emit_error(f"{type(exc).__name__}: {exc}")
         sys.exit(1)

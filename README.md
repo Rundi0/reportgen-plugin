@@ -30,7 +30,7 @@ The install dialog asks for three settings:
 | Setting | What to enter |
 | --- | --- |
 | Report Generator URL | Base URL of your instance. Defaults to `https://report.lan`. |
-| API key | Create one in the web UI under Settings and paste it here. |
+| API key | A personal key from the web UI, see [Get an API key](#get-an-api-key). |
 | Verify TLS certificate | Leave on unless your instance uses a self-signed certificate. Always off for `https://report.lan`. |
 
 Start a new session and try it: *"list my audits"*.
@@ -41,6 +41,19 @@ instead, pass the values as flags:
 `claude plugin install reportgen@reportgen --config api_key=...`.
 
 To update, run `/plugin marketplace update reportgen`.
+
+## Get an API key
+
+![Creating an API key in the web UI and pasting it into the plugin settings](docs/api-key.gif)
+
+1. In the Report Generator web UI, open **Settings**.
+2. Under **API Keys**, type a name for the key (for example `claude-code`) and press **Create key**.
+3. Copy the key straight away: it starts with `rg_` and is shown only once.
+4. Paste it into the **API key** field of the install dialog. If the plugin is already installed, run `/plugin configure reportgen@reportgen` instead.
+
+The key acts as you, with your permissions. To revoke it, delete it on the same Settings page.
+
+*Screenshots are from a development instance; the key shown has been deleted.*
 
 ## What you get
 
@@ -72,7 +85,8 @@ targets you are authorized to test.
 - "Which audits are in progress, and what is left to triage in the ACME one?"
 - "Show the critical vulnerabilities in audit 17 and the services they affect."
 - "Verify vulnerability 412 in audit 17."
-- "Generate the report for audit 17."
+- "Upload this Nessus scan into audit 17."
+- "Generate the scan act for audit 17." (Claude first checks that every vulnerability has a translation and tells you if some do not.)
 
 Claude asks before anything that changes data unless your request
 already says to do it.
@@ -206,6 +220,7 @@ for commands; `reportgen <group> <command> --help` for full options.
 | `users` | List Keycloak users |
 | `merge-rules` | Vulnerability deduplication rules |
 | `reports` | Doc templates, generate, check-translations, scan-data upload |
+| `report-acts` | AI-drafted act text: notes, section outline, generate, edit |
 
 ## AI agent usage notes
 
@@ -258,6 +273,12 @@ while true; do
   [ "$status" = "completed" ] || [ "$status" = "failed" ] && break
   sleep 5
 done
+
+# Import scanner output into an audit
+reportgen reports upload-scan-data 17 scan.nessus
+
+# Before generating: list vulnerabilities that have no translation ([] = none)
+reportgen reports check-translations --source internal_db --workspace-id 17
 
 # Generate a .docx report
 reportgen reports generate \

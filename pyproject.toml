@@ -10,7 +10,7 @@ dependencies = [
 ]
 
 [project.scripts]
-reportgen = "reportgen_cli.__main__:cli"
+reportgen = "reportgen_cli.__main__:main"
 
 [build-system]
 requires = ["setuptools>=68"]
