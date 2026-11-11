@@ -81,6 +81,7 @@ def upload_scan_data(ctx, audit_id, file_path):
     with p.open("rb") as fh:
         files = {"file": (p.name, fh, "application/octet-stream")}
         client = get_client(ctx)
+        client.require_member(audit_id)
         response = client._http.post(
             "/api/upload",
             data={"auditId": str(audit_id)},

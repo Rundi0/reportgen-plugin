@@ -9,11 +9,16 @@ server-supplied detail message when available.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 import httpx
 
 from .config import Config
+
+
+# Anything other than GET under /api/audits/{id} changes that audit.
+_AUDIT_PATH = re.compile(r"^/api/audits/(\d+)(?:/|$)")
 
 
 class ApiError(RuntimeError):
@@ -44,6 +49,7 @@ class ApiClient:
         cookies = (
             {"session_id": config.session_id} if config.session_id else {}
         )
+        self._me: str | None = None
         self._http = httpx.Client(
             base_url=config.url,
             headers=headers,
@@ -52,6 +58,22 @@ class ApiClient:
             timeout=config.timeout,
             follow_redirects=False,
         )
+
+    def me(self) -> str:
+        """`sub` of the user the CLI is acting as."""
+        if self._me is None:
+            self._me = self.get("/api/auth/me", unwrap=False)["sub"]
+        return self._me
+
+    def require_member(self, audit_id: int) -> None:
+        """Refuse to change an audit the current user is not a pentester on."""
+        pentesters = self.get(f"/api/audits/{audit_id}").get("pentestersIds") or []
+        if self.me() not in pentesters:
+            raise ApiError(
+                403,
+                f"You are not a pentester on audit {audit_id}; "
+                "the CLI only changes audits you take part in.",
+            )
 
     def close(self) -> None:
         self._http.close()
@@ -73,6 +95,8 @@ class ApiClient:
         data: Any = None,
         unwrap: bool = True,
     ) -> Any:
+        if method != "GET" and (m := _AUDIT_PATH.match(path)):
+            self.require_member(int(m[1]))
         response = self._http.request(
             method,
             path,

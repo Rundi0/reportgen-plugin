@@ -68,14 +68,20 @@ def upload_org(ctx, org_id, file_path):
 @click.argument("file_path", type=click.Path(exists=True, dir_okay=False))
 @click.pass_context
 def upload_audit(ctx, audit_id, file_path):
+    get_client(ctx).require_member(audit_id)
     _upload(ctx, f"/api/audits/{audit_id}/files", file_path)
 
 
 @group.command("upload-vuln")
+@click.argument("audit_id", type=int)
 @click.argument("vuln_id", type=int)
 @click.argument("file_path", type=click.Path(exists=True, dir_okay=False))
 @click.pass_context
-def upload_vuln(ctx, vuln_id, file_path):
+def upload_vuln(ctx, audit_id, vuln_id, file_path):
+    client = get_client(ctx)
+    client.require_member(audit_id)
+    if client.get(f"/api/audits/{audit_id}/vulnerabilities/{vuln_id}")["auditId"] != audit_id:
+        raise click.UsageError(f"Vulnerability {vuln_id} is not in audit {audit_id}")
     _upload(ctx, f"/api/vulnerabilities/{vuln_id}/files", file_path)
 
 
@@ -90,11 +96,3 @@ def download(ctx, file_id, out_path):
     else:
         Path(out_path).write_bytes(data)
         emit({"saved": out_path, "bytes": len(data)})
-
-
-@group.command("delete")
-@click.argument("file_id", type=int)
-@click.pass_context
-def delete(ctx, file_id):
-    get_client(ctx).delete(f"/api/files/{file_id}")
-    emit({"deleted": file_id})

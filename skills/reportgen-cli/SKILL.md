@@ -1,6 +1,6 @@
 ---
 name: reportgen-cli
-description: Use this skill whenever the user asks to query or modify Report Generator data (organizations, audits, hosts, services, vulnerabilities, scan tasks, contacts, files, action history, vuln templates, merge rules) or to generate reports. The skill explains how to call the `reportgen` CLI to talk to the backend and how to interpret its JSON output. Trigger on requests like "list audits", "show services for audit N", "create a vulnerability", "kick off a scan", "generate report", or anything that maps to the REST API at `/api/...`.
+description: Use ONLY when the user directly asks to work with Report Generator — they name Report Generator, the `reportgen` CLI, or one of its audits or organizations — for example "list audits in Report Generator", "show services for audit N", "create a vulnerability in audit N", "generate the report for audit N". Never load this skill or run `reportgen` on your own initiative, e.g. to gather context, or because a task merely mentions vulnerabilities, hosts, scans or reports in general; if you think it would help, ask the user first. The skill explains how to call the `reportgen` CLI and how to read its JSON output.
 ---
 
 # Working with the Report Generator CLI
@@ -66,7 +66,7 @@ Run `reportgen <group> --help` for the authoritative arg list. Quick map:
 | --- | --- |
 | `auth` | `whoami` |
 | `organizations` | `list`, `get ORG_ID`, `create`, `update ORG_ID`, `workspaces --source ...`, `import-pentestadmin PA_ID --source ...` |
-| `audits` | `list`, `list-by-org ORG_ID`, `get AUDIT_ID`, `create ORG_ID --type ... --status ...`, `patch AUDIT_ID` |
+| `audits` | `mine` (only audits where the current user is a pentester), `list` (everyone's), `list-by-org ORG_ID`, `get AUDIT_ID`, `create ORG_ID --type ... --status ...`, `patch AUDIT_ID` |
 | `contacts` | `list ORG_ID`, `get ORG_ID CONTACT_ID`, `create ORG_ID`, `update ORG_ID CONTACT_ID`, `delete ORG_ID CONTACT_ID` |
 | `hosts` | `list AUDIT_ID`, `get AUDIT_ID HOST_ID`, `create AUDIT_ID --ip ...`, `update`, `delete`, `refresh-countries AUDIT_ID HOST_ID...` |
 | `services` | `list AUDIT_ID`, `get`, `create`, `update`, `delete`, `link-host`, `unlink-host`, `backfill-hosts AUDIT_ID`, `export-acunetix AUDIT_ID --output FILE` |
@@ -74,7 +74,7 @@ Run `reportgen <group> --help` for the authoritative arg list. Quick map:
 | `instances` | `create`, `update`, `delete`, `bulk-status --status STATUS AUDIT_ID VULN_ID ID...` |
 | `vuln-templates` | `list -q QUERY`, `list-names`, `get`, `by-name NAME`, `create`, `update`, `save` (upsert by name), `translate --service openai|ollama --body '{...}'` |
 | `scan-tasks` | `list AUDIT_ID --status STATUS`, `get`, `create AUDIT_ID --scan-type ... --params '{...}'`, `cancel`, `delete` |
-| `files` | `list-org`, `list-audit`, `list-vuln`, `upload-org`, `upload-audit`, `upload-vuln`, `download FILE_ID --output FILE`, `delete` |
+| `files` | `list-org`, `list-audit`, `list-vuln`, `upload-org`, `upload-audit`, `upload-vuln AUDIT_ID VULN_ID FILE`, `download FILE_ID --output FILE` |
 | `history` | `list AUDIT_ID`, `comment AUDIT_ID "text"` |
 | `general-recommendations` | `get AUDIT_ID`, `patch AUDIT_ID FILE` (JSON list or `get` output, `-` = stdin), `generate AUDIT_ID`, `reset AUDIT_ID` |
 | `users` | `list` |
@@ -232,8 +232,11 @@ reportgen instances bulk-status 17 99 --status fixed 5001 5002 5003
 - **The `services delete` endpoint refuses if instances reference the service** (HTTP 409). Delete its instances first.
 - **Output can be huge.** A `services list` for a sizeable audit is tens of KB. Pipe through `jq` to project just what you need before showing the user.
 - **Don't paste raw session cookies or API keys into chat.** When troubleshooting auth, refer to it as "the value in the env file" and never `cat` that file into responses.
+- **"My audits" means `audits mine`.** When the user asks about their own audits, or does not say whose, start from `audits mine`; use `audits list` only when they ask for all audits or name someone else's. If `audits mine` returns 401, the server is older than this CLI: say so instead of falling back silently.
+- **Never run `reportgen` unprompted.** Use it only for what the user directly asked for in this conversation (or what a workflow they started tells you to do). If Report Generator data would help with some other task, ask first; do not look it up on your own.
 - **Do not run mutations without explicit user authorization.** Reads (`list`, `get`) are safe; `create`, `update`, `delete`, `bulk-*`, `cancel`, scan task creation all change state — confirm first when the user's request is ambiguous.
-- **No mass or top-level deletion.** The CLI deliberately cannot delete organizations, audits or translation templates, wipe an audit's scan data, or delete in bulk. Do not work around it by looping single `delete` calls or calling the REST API directly; if the user wants that, point them to the web UI.
+- **You can only change audits the user takes part in.** Any create, update, delete, upload or scan in an audit is refused with 403 unless the current user is one of its pentesters (`audits mine` lists those). Reading other audits still works. Pentesters cannot be assigned from the CLI: `audits create` makes the current user the pentester, and `pentestersIds` in `--body` is rejected. On a 403 tell the user to get added to the audit in the web UI; do not try another route.
+- **No mass or top-level deletion.** The CLI deliberately cannot delete organizations, audits, attached files or translation templates, wipe an audit's scan data, or delete in bulk. Do not work around it by looping single `delete` calls or calling the REST API directly; if the user wants that, point them to the web UI.
 - **Merged (child) vulnerabilities are read-only.** `vulnerabilities list` nests children inside their parent's `children` array — they do not appear at the top level. Do not update, delete, or create instances on child vulnerabilities; all edits (name, severity, proofs, instances) go on the **parent**. To move a child out, `unmerge` it first.
 
 ## When the CLI lacks an operation

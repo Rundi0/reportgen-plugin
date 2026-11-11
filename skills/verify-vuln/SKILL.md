@@ -1,7 +1,7 @@
 ---
 name: verify-vuln
 description: Verify a single vulnerability — triage all its `new` instances as approved or false_positive, write proofs.
-trigger: When the user asks to verify, check, or triage a vulnerability (by ID or name) in an audit.
+trigger: Only when the user directly asks to verify, check, or triage a vulnerability (by ID or name) in a Report Generator audit, or a workflow they started says to. Never on your own initiative.
 ---
 
 # Verify a vulnerability

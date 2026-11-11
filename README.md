@@ -207,7 +207,7 @@ for commands; `reportgen <group> <command> --help` for full options.
 | --- | --- |
 | `auth` | `whoami` |
 | `organizations` | create, read, update, pentestadmin workspaces & import |
-| `audits` | create, read, list-by-org, patch |
+| `audits` | `mine` (your audits), create, read, list-by-org, patch |
 | `contacts` | Per-organization contacts |
 | `hosts` | Audit hosts, refresh-countries via GeoIP |
 | `services` | Services, host links, Acunetix CSV export |
@@ -222,6 +222,16 @@ for commands; `reportgen <group> <command> --help` for full options.
 | `reports` | Doc templates, generate, check-translations, scan-data upload |
 | `report-acts` | AI-drafted act text: notes, section outline, generate, edit |
 
+## Safety limits
+
+The CLI is deliberately less powerful than the web UI:
+
+- It only changes audits where you are one of the pentesters; everything else is read-only (403).
+- It cannot assign pentesters. `audits create` makes you the pentester.
+- It cannot delete organizations, audits, attached files or translation templates, wipe an audit's scan data, or delete in bulk.
+
+These checks live in the CLI, not on the server.
+
 ## AI agent usage notes
 
 - Output is always JSON, suitable as direct input to another tool. For
@@ -229,7 +239,7 @@ for commands; `reportgen <group> <command> --help` for full options.
   of individual flags — useful when assembling payloads from prior
   output.
 - Field names in `--body` follow the same camelCase convention as the
-  REST API (e.g. `pentestersIds`, `quartalYear`).
+  REST API (e.g. `startedAt`, `quartalYear`).
 - `--body` and explicit `--name`/`--severity`/etc. flags can be mixed;
   explicit flags win on conflict.
 - Errors land on stderr as `{"error": "...", "status": 4xx, "body": ...}`.
