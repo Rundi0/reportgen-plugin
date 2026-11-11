@@ -95,20 +95,3 @@ def patch(ctx, audit_id, body_json, type_, status, notes, started_at, finished_a
         },
     )
     emit(get_client(ctx).patch(f"/api/audits/{audit_id}", json=body))
-
-
-@group.command("delete")
-@click.argument("audit_id", type=int)
-@click.pass_context
-def delete(ctx, audit_id):
-    get_client(ctx).delete(f"/api/audits/{audit_id}")
-    emit({"deleted": audit_id})
-
-
-@group.command("clear-scan-data", help="Wipe hosts, services, vulnerabilities for the audit.")
-@click.argument("audit_id", type=int)
-@click.confirmation_option(prompt="This deletes all scan data for the audit. Continue?")
-@click.pass_context
-def clear_scan_data(ctx, audit_id):
-    get_client(ctx).delete(f"/api/audits/{audit_id}/scan-data")
-    emit({"cleared": audit_id})

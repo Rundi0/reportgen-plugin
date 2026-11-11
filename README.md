@@ -206,12 +206,12 @@ for commands; `reportgen <group> <command> --help` for full options.
 | Group | What it covers |
 | --- | --- |
 | `auth` | `whoami` |
-| `organizations` | CRUD, pentestadmin workspaces & import |
-| `audits` | CRUD, list-by-org, patch, clear-scan-data |
+| `organizations` | create, read, update, pentestadmin workspaces & import |
+| `audits` | create, read, list-by-org, patch |
 | `contacts` | Per-organization contacts |
 | `hosts` | Audit hosts, refresh-countries via GeoIP |
 | `services` | Services, host links, Acunetix CSV export |
-| `vulnerabilities` | CRUD, bulk-delete |
+| `vulnerabilities` | CRUD |
 | `instances` | Per-service vulnerability instances |
 | `vuln-templates` | Translation templates, AI-translate |
 | `scan-tasks` | Background scan tasks |

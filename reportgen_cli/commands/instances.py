@@ -72,19 +72,6 @@ def delete(ctx, audit_id, vuln_id, instance_id):
     emit({"deleted": instance_id})
 
 
-@group.command("bulk-delete")
-@click.argument("audit_id", type=int)
-@click.argument("vuln_id", type=int)
-@click.argument("ids", nargs=-1, type=int, required=True)
-@click.pass_context
-def bulk_delete(ctx, audit_id, vuln_id, ids):
-    get_client(ctx).post(
-        f"/api/audits/{audit_id}/vulnerabilities/{vuln_id}/instances/bulk-delete",
-        json={"ids": list(ids)},
-    )
-    emit({"deleted": list(ids)})
-
-
 @group.command("bulk-status")
 @click.argument("audit_id", type=int)
 @click.argument("vuln_id", type=int)

@@ -65,14 +65,14 @@ Run `reportgen <group> --help` for the authoritative arg list. Quick map:
 | Group | Common commands |
 | --- | --- |
 | `auth` | `whoami` |
-| `organizations` | `list`, `get ORG_ID`, `create`, `update ORG_ID`, `delete ORG_ID`, `workspaces --source ...`, `import-pentestadmin PA_ID --source ...` |
-| `audits` | `list`, `list-by-org ORG_ID`, `get AUDIT_ID`, `create ORG_ID --type ... --status ...`, `patch AUDIT_ID`, `delete AUDIT_ID`, `clear-scan-data AUDIT_ID` |
+| `organizations` | `list`, `get ORG_ID`, `create`, `update ORG_ID`, `workspaces --source ...`, `import-pentestadmin PA_ID --source ...` |
+| `audits` | `list`, `list-by-org ORG_ID`, `get AUDIT_ID`, `create ORG_ID --type ... --status ...`, `patch AUDIT_ID` |
 | `contacts` | `list ORG_ID`, `get ORG_ID CONTACT_ID`, `create ORG_ID`, `update ORG_ID CONTACT_ID`, `delete ORG_ID CONTACT_ID` |
 | `hosts` | `list AUDIT_ID`, `get AUDIT_ID HOST_ID`, `create AUDIT_ID --ip ...`, `update`, `delete`, `refresh-countries AUDIT_ID HOST_ID...` |
 | `services` | `list AUDIT_ID`, `get`, `create`, `update`, `delete`, `link-host`, `unlink-host`, `backfill-hosts AUDIT_ID`, `export-acunetix AUDIT_ID --output FILE` |
-| `vulnerabilities` | `list AUDIT_ID`, `get AUDIT_ID VULN_ID`, `create AUDIT_ID --severity 1..5 ...`, `update`, `delete`, `bulk-delete AUDIT_ID ID...` |
-| `instances` | `create`, `update`, `delete`, `bulk-delete`, `bulk-status --status STATUS AUDIT_ID VULN_ID ID...` |
-| `vuln-templates` | `list -q QUERY`, `list-names`, `get`, `by-name NAME`, `create`, `update`, `delete`, `save` (upsert by name), `translate --service openai|ollama --body '{...}'` |
+| `vulnerabilities` | `list AUDIT_ID`, `get AUDIT_ID VULN_ID`, `create AUDIT_ID --severity 1..5 ...`, `update`, `delete AUDIT_ID VULN_ID` |
+| `instances` | `create`, `update`, `delete`, `bulk-status --status STATUS AUDIT_ID VULN_ID ID...` |
+| `vuln-templates` | `list -q QUERY`, `list-names`, `get`, `by-name NAME`, `create`, `update`, `save` (upsert by name), `translate --service openai|ollama --body '{...}'` |
 | `scan-tasks` | `list AUDIT_ID --status STATUS`, `get`, `create AUDIT_ID --scan-type ... --params '{...}'`, `cancel`, `delete` |
 | `files` | `list-org`, `list-audit`, `list-vuln`, `upload-org`, `upload-audit`, `upload-vuln`, `download FILE_ID --output FILE`, `delete` |
 | `history` | `list AUDIT_ID`, `comment AUDIT_ID "text"` |
@@ -218,7 +218,6 @@ done
 
 ```bash
 # IDs go as positional args after the audit/vuln ID
-reportgen vulnerabilities bulk-delete 17 101 102 103
 reportgen instances bulk-status 17 99 --status fixed 5001 5002 5003
 ```
 
@@ -230,10 +229,11 @@ reportgen instances bulk-status 17 99 --status fixed 5001 5002 5003
 
 - **Always check `exit code`**, not just stdout content. A timeout, expired session, or 4xx all yield non-zero.
 - **`--pretty` is a global flag** — put it *before* the group: `reportgen --pretty audits list`. After the group it errors as unknown.
-- **The `services delete` endpoint refuses if instances reference the service** (HTTP 409). Delete instances first or use `bulk-delete` on vulns.
+- **The `services delete` endpoint refuses if instances reference the service** (HTTP 409). Delete its instances first.
 - **Output can be huge.** A `services list` for a sizeable audit is tens of KB. Pipe through `jq` to project just what you need before showing the user.
 - **Don't paste raw session cookies or API keys into chat.** When troubleshooting auth, refer to it as "the value in the env file" and never `cat` that file into responses.
-- **Do not run mutations without explicit user authorization.** Reads (`list`, `get`) are safe; `create`, `update`, `delete`, `clear-scan-data`, `bulk-*`, `cancel`, scan task creation all change state — confirm first when the user's request is ambiguous.
+- **Do not run mutations without explicit user authorization.** Reads (`list`, `get`) are safe; `create`, `update`, `delete`, `bulk-*`, `cancel`, scan task creation all change state — confirm first when the user's request is ambiguous.
+- **No mass or top-level deletion.** The CLI deliberately cannot delete organizations, audits or translation templates, wipe an audit's scan data, or delete in bulk. Do not work around it by looping single `delete` calls or calling the REST API directly; if the user wants that, point them to the web UI.
 - **Merged (child) vulnerabilities are read-only.** `vulnerabilities list` nests children inside their parent's `children` array — they do not appear at the top level. Do not update, delete, or create instances on child vulnerabilities; all edits (name, severity, proofs, instances) go on the **parent**. To move a child out, `unmerge` it first.
 
 ## When the CLI lacks an operation

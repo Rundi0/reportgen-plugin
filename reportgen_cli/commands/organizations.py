@@ -51,14 +51,6 @@ def update(ctx, org_id, body_json):
     emit(get_client(ctx).patch(f"/api/organizations/{org_id}", json=body))
 
 
-@group.command("delete")
-@click.argument("org_id", type=int)
-@click.pass_context
-def delete(ctx, org_id):
-    get_client(ctx).delete(f"/api/organizations/{org_id}")
-    emit({"deleted": org_id})
-
-
 @group.command("workspaces", help="List pentestadmin workspaces for a source.")
 @click.option(
     "--source",

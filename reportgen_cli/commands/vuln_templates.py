@@ -78,14 +78,6 @@ def update(ctx, template_id, body_json, name, severity, description, resolution)
     ))
 
 
-@group.command("delete")
-@click.argument("template_id", type=int)
-@click.pass_context
-def delete(ctx, template_id):
-    get_client(ctx).delete(f"/api/vuln-templates/{template_id}")
-    emit({"deleted": template_id})
-
-
 @group.command("save", help="Upsert by name (POST /api/vuln-templates).")
 @click.option("--body", "body_json")
 @click.option("--name")
