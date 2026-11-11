@@ -46,12 +46,12 @@ To update, run `/plugin marketplace update reportgen`.
 
 ![Creating an API key in the web UI and pasting it into the plugin settings](docs/api-key.gif)
 
-1. In the Report Generator web UI, open **Settings**.
-2. Under **API Keys**, type a name for the key (for example `claude-code`) and press **Create key**.
-3. Copy the key straight away: it starts with `rg_` and is shown only once.
+1. In the Report Generator web UI, open **Налаштування** (Settings): your name at the bottom of the left sidebar.
+2. Under **API-ключі**, type a name for the key (for example `claude-code`) and press **+ Ключ**.
+3. Press **Копіювати** straight away: the key starts with `rg_` and is shown only once.
 4. Paste it into the **API key** field of the install dialog. If the plugin is already installed, run `/plugin configure reportgen@reportgen` instead.
 
-The key acts as you, with your permissions. To revoke it, delete it on the same Settings page.
+The key acts as you, with your permissions. To revoke it, press **Відкликати** next to it on the same page.
 
 *Screenshots are from a development instance; the key shown has been deleted.*
 
